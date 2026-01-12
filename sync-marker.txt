@@ -1,0 +1,3 @@
+Sync marker for CHANGELOG.md update - v0.21.1
+Created: 2026-01-13
+Purpose: Force sync of CHANGELOG updates to GitHub
