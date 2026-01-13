@@ -1,5 +1,223 @@
 # 更新日志
 
+## [0.21.8] - 2026-01-14
+
+### 🎉 改进：自动读取模型配置
+
+#### 新功能
+
+**自动配置读取系统**
+- ✅ **无需手动设置**：自动从用户配置文件读取模型设置
+- ✅ **多源支持**：支持环境变量、用户配置、项目配置等多种配置源
+- ✅ **智能优先级**：按优先级自动选择最合适的配置
+- ✅ **标准兼容**：支持标准 Anthropic SDK 环境变量
+
+**配置优先级**（从高到低）：
+1. 环境变量 `NOVEL_AI_MODEL`
+2. 环境变量 `ANTHROPIC_MODEL`（标准 Anthropic 变量）
+3. 用户配置文件 `~/.claude/settings.json`
+4. 项目配置文件 `.claude/settings.json`
+5. 默认值 `claude-sonnet-4-5-20250929`
+
+#### 实现细节
+
+**新增文件**：
+- `dist/utils/model-config.js` - 模型配置读取工具
+  - `getModelConfig()` - 自动读取模型配置
+  - `getAnthropicEnvConfig()` - 读取 Anthropic 环境变量
+  - `displayModelConfig()` - 显示当前配置（调试用）
+
+**修改文件**：
+- `dist/plugins/manager.js`
+  - 导入 `getModelConfig` 函数
+  - `addFrontmatter()` 改为异步函数，自动读取模型配置
+  - 调用处添加 `await` 支持
+
+**新增测试脚本**：
+- `scripts/powershell/test-auto-config.ps1` - 测试自动配置功能
+
+#### 使用示例
+
+**场景 1：使用用户配置（最推荐）**
+
+编辑 `~/.claude/settings.json`：
+```json
+{
+  "env": {
+    "ANTHROPIC_MODEL": "LongCat-Flash-Chat",
+    "ANTHROPIC_BASE_URL": "https://api.longcat.chat",
+    "ANTHROPIC_AUTH_TOKEN": "Bearer your-api-key"
+  }
+}
+```
+
+然后直接运行：
+```bash
+novel init my-novel
+# 自动使用 LongCat-Flash-Chat 模型，无需额外设置！
+```
+
+**场景 2：使用环境变量**
+```bash
+# 设置标准 Anthropic 变量
+export ANTHROPIC_MODEL="LongCat-Flash-Chat"
+export ANTHROPIC_BASE_URL="https://api.longcat.chat"
+
+# 或使用 Novel Writer 专用变量
+export NOVEL_AI_MODEL="LongCat-Flash-Chat"
+
+novel init my-novel
+```
+
+**场景 3：临时覆盖**
+```bash
+# 即使配置文件中设置了其他模型，也可以临时覆盖
+NOVEL_AI_MODEL="LongCat-Flash-Thinking" novel init my-novel
+```
+
+#### 优势
+
+1. **用户友好**：配置一次，到处使用
+2. **标准兼容**：支持 Anthropic SDK 标准环境变量
+3. **灵活性高**：支持多种配置方式，满足不同需求
+4. **向后兼容**：不影响现有项目和配置
+
+#### 测试方法
+
+```powershell
+# 运行自动配置测试
+.\scripts\powershell\test-auto-config.ps1
+
+# 显示当前配置
+node -e "import('./dist/utils/model-config.js').then(m => m.displayModelConfig())"
+```
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.8`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.21.8`
+- **发布时间**: 2026-01-14
+
+### ⚠️ 升级建议
+
+**推荐所有用户升级**，特别是使用第三方 API 的用户：
+
+1. 升级到 0.21.8：
+   ```bash
+   npm update -g novel-writer-style-cn
+   ```
+
+2. 在用户配置中设置模型（推荐）：
+   ```bash
+   # Windows
+   notepad $env:USERPROFILE\.claude\settings.json
+   
+   # Linux/Mac
+   nano ~/.claude/settings.json
+   ```
+
+3. 添加配置：
+   ```json
+   {
+     "env": {
+       "ANTHROPIC_MODEL": "LongCat-Flash-Chat"
+     }
+   }
+   ```
+
+4. 创建新项目，自动使用配置的模型：
+   ```bash
+   novel init my-novel
+   ```
+
+### 🔄 与 v0.21.7 的区别
+
+| 功能 | v0.21.7 | v0.21.8 |
+|------|---------|---------|
+| 环境变量支持 | ✅ `NOVEL_AI_MODEL` | ✅ `NOVEL_AI_MODEL` + `ANTHROPIC_MODEL` |
+| 用户配置读取 | ❌ | ✅ 自动读取 `~/.claude/settings.json` |
+| 项目配置读取 | ❌ | ✅ 自动读取 `.claude/settings.json` |
+| 配置优先级 | 单一 | 多级智能选择 |
+| 标准兼容性 | 部分 | ✅ 完全兼容 Anthropic SDK |
+
+---
+
+## [0.21.7] - 2026-01-14
+
+### 🔧 新增：第三方 API 支持（LongCat、OpenRouter 等）
+
+#### 问题背景
+- **问题**: 用户使用 LongCat、OpenRouter 等第三方 API 时，CLI 工具生成的命令配置文件硬编码了 `claude-sonnet-4-5-20250929` 模型名称
+- **错误信息**: `API Error: 400 {"error":{"code":"invalid_parameter","message":"不支持的模型名(model=claude-sonnet-4-5-20250929)"}}`
+- **根本原因**: 所有命令配置文件（`.claude/commands/*.md`、`.gemini/commands/*.toml` 等）中的 `model` 字段硬编码为 Claude 模型名称
+- **影响范围**: 所有使用第三方 API 的用户
+
+#### 解决方案
+
+**1. 支持环境变量配置模型名称**
+- 新增环境变量 `NOVEL_AI_MODEL` 支持自定义模型名称
+- 修改 `dist/plugins/manager.js`，从环境变量读取模型配置
+- 默认值仍为 `claude-sonnet-4-5-20250929`，保持向后兼容
+
+**使用方法**：
+```bash
+# Windows CMD
+set NOVEL_AI_MODEL=LongCat-Flash-Chat
+novel init my-novel
+
+# Windows PowerShell
+$env:NOVEL_AI_MODEL="LongCat-Flash-Chat"
+novel init my-novel
+
+# Linux/Mac
+export NOVEL_AI_MODEL="LongCat-Flash-Chat"
+novel init my-novel
+```
+
+**2. 批量更新脚本**
+- 新增 `scripts/powershell/update-model-name.ps1` 脚本
+- 支持批量更新已生成项目中的所有命令文件
+- 自动扫描 `dist/` 目录下的所有命令配置文件
+
+**使用方法**：
+```powershell
+.\scripts\powershell\update-model-name.ps1 -ModelName "LongCat-Flash-Chat"
+```
+
+**3. 模型配置文件**
+- 新增 `dist/config/model-config.json` 配置文件
+- 预定义常用第三方模型配置：
+  - `LongCat-Flash-Chat` - LongCat 快速对话模型
+  - `LongCat-Flash-Thinking` - LongCat 思考模型
+  - 支持自定义模型名称
+
+**4. 更新文档**
+- README.md 新增"使用第三方 API"章节
+- 详细说明环境变量配置和批量更新方法
+- 提供 LongCat API 配置示例
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.7`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.21.7`
+- **发布时间**: 2026-01-14
+
+### ⚠️ 使用建议
+
+**如果您使用第三方 API（LongCat、OpenRouter 等）**：
+1. 升级到 0.21.7：`npm update -g novel-writer-style-cn`
+2. 设置环境变量：`set NOVEL_AI_MODEL=LongCat-Flash-Chat`（Windows CMD）
+3. 初始化新项目或更新现有项目
+4. 在 AI 助手中配置 API 端点和密钥
+
+**已有项目的用户**：
+- 使用 `update-model-name.ps1` 脚本批量更新命令文件
+- 或手动修改 `.claude/commands/*.md` 等文件中的 `model` 字段
+
+---
+
 ## [0.21.6] - 2026-01-14
 
 ### 🐛 重要修复：风格学习命令缺失

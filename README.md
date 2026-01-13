@@ -42,6 +42,76 @@
 - **本项目**：[lsg1103275794/novel-writer-style-cn](https://github.com/lsg1103275794/novel-writer-style-cn) - 增加了突破性AI风格学习系统
 - **原项目**：[WordFlowLab/novel-writer](https://github.com/wordflowlab/novel-writer) - 基础七步方法论
 
+### 🔧 使用第三方 API（LongCat、OpenRouter 等）
+
+**🎉 v0.21.8+ 自动配置功能**：无需手动设置，自动读取你的配置！
+
+#### 方法 1：在用户配置中设置（最推荐）
+
+编辑你的 Claude 配置文件：
+
+**Windows**:
+```powershell
+notepad $env:USERPROFILE\.claude\settings.json
+```
+
+**Linux/Mac**:
+```bash
+nano ~/.claude/settings.json
+```
+
+添加配置：
+```json
+{
+  "env": {
+    "ANTHROPIC_MODEL": "LongCat-Flash-Chat",
+    "ANTHROPIC_BASE_URL": "https://api.longcat.chat",
+    "ANTHROPIC_AUTH_TOKEN": "Bearer your-api-key"
+  }
+}
+```
+
+然后直接运行 `novel init my-novel`，自动使用配置的模型！
+
+#### 方法 2：使用环境变量
+
+```bash
+# Windows CMD
+set ANTHROPIC_MODEL=LongCat-Flash-Chat
+novel init my-novel
+
+# Windows PowerShell
+$env:ANTHROPIC_MODEL="LongCat-Flash-Chat"
+novel init my-novel
+
+# Linux/Mac
+export ANTHROPIC_MODEL="LongCat-Flash-Chat"
+novel init my-novel
+```
+
+#### 方法 3：批量更新已有项目
+
+如果你已经初始化了项目，可以使用脚本批量更新模型名称：
+
+```powershell
+# 在项目根目录运行
+.\scripts\powershell\update-model-name.ps1 -ModelName "LongCat-Flash-Chat"
+```
+
+**支持的第三方模型**：
+- `LongCat-Flash-Chat` - LongCat 快速对话模型
+- `LongCat-Flash-Thinking` - LongCat 思考模型
+- 或任何兼容 Anthropic API 的模型名称
+
+**配置优先级**：
+1. 环境变量 `NOVEL_AI_MODEL`
+2. 环境变量 `ANTHROPIC_MODEL`（标准）
+3. 用户配置 `~/.claude/settings.json`
+4. 项目配置 `.claude/settings.json`
+5. 默认值
+
+**详细文档**：查看 [第三方 API 使用指南](docs/THIRD_PARTY_API.md)
+
 ### 1. 安装
 
 ```bash

@@ -1,0 +1,21 @@
+{
+  "defaultModel": "claude-sonnet-4-5-20250929",
+  "supportedModels": {
+    "claude": {
+      "name": "claude-sonnet-4-5-20250929",
+      "provider": "Anthropic",
+      "description": "Claude Sonnet 4.5"
+    },
+    "longcat-flash": {
+      "name": "LongCat-Flash-Chat",
+      "provider": "LongCat",
+      "description": "LongCat Flash Chat Model"
+    },
+    "longcat-thinking": {
+      "name": "LongCat-Flash-Thinking",
+      "provider": "LongCat",
+      "description": "LongCat Flash Thinking Model"
+    }
+  },
+  "customModel": null
+}

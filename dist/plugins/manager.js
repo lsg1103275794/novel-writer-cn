@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getModelConfig } from '../utils/model-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -206,8 +207,8 @@ export class PluginManager {
                     let finalContent = content;
 
                     if (config.needsFrontmatter && !content.startsWith('---')) {
-                        // 添加 YAML frontmatter
-                        finalContent = this.addFrontmatter(cmdName, content);
+                        // 添加 YAML frontmatter（异步调用）
+                        finalContent = await this.addFrontmatter(cmdName, content);
                     }
 
                     const targetFileName = config.prefix ? `${config.prefix}${cmdName}.md` : `${cmdName}.md`;
@@ -226,9 +227,9 @@ export class PluginManager {
      * 为命令内容添加 YAML frontmatter
      * @param {string} cmdName - 命令名称
      * @param {string} content - 原始内容
-     * @returns {string} - 添加 frontmatter 后的内容
+     * @returns {Promise<string>} - 添加 frontmatter 后的内容
      */
-    addFrontmatter(cmdName, content) {
+    async addFrontmatter(cmdName, content) {
         // 从内容中提取第一行作为描述
         const lines = content.split('\n');
         let description = `${cmdName} 命令`;
@@ -245,11 +246,15 @@ export class PluginManager {
             }
         }
 
+        // 自动读取模型配置（优先级：环境变量 > 用户配置 > 默认值）
+        const modelConfig = await getModelConfig();
+        const modelName = modelConfig.model;
+        
         const frontmatter = `---
 description: ${description}
 argument-hint: [参数]
 allowed-tools: Read(//**), Write(//**), Bash(*)
-model: claude-sonnet-4-5-20250929
+model: ${modelName}
 ---
 
 `;
