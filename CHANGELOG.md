@@ -1,46 +1,275 @@
 # 更新日志
 
-## [0.21.2] - 2026-01-13
+## [0.21.6] - 2026-01-14
 
-### 🐛 关键修复
+### 🐛 重要修复：风格学习命令缺失
 
-#### CLI 参数验证和显示问题修复
-- **问题**: 运行 `novel init` 不提供参数时报 `ERR_INVALID_ARG_TYPE` 错误
-- **根本原因**: 缺少参数验证，`name` 参数为 `undefined` 时传递给 `path.join()` 导致类型错误
-- **修复内容**:
-  - 添加参数验证：确保提供项目名称或使用 `--here` 参数
-  - 提前验证避免后续的 `ERR_INVALID_ARG_TYPE` 错误
-  - 提供清晰的错误提示和使用示例
+#### 问题背景
+- **问题**: 通过 `novel init` 创建新项目后，无法使用风格学习命令（`/novel.style-analyze`、`/novel.style-learn` 等）
+- **根本原因**: `dist/` 目录中各 AI 平台的命令模板缺少风格学习相关的命令文件
+- **影响范围**: 所有通过 `novel init` 创建的新项目都不包含风格学习命令
+- **用户体验**: 用户在 Claude Code 中输入 `/novel.style-analyze` 时收到意外的交互式响应，而不是直接执行风格分析
 
-#### 版本显示问题修复
-- **问题**: CLI 启动时显示 `[object Object]` 而非版本号
-- **根本原因**: `getVersionInfo()` 返回对象，但在字符串上下文中使用
-- **修复**: 改用 `getVersion()` 直接获取版本字符串
+#### 修复内容
 
-#### 交互选择数据类型修复
-- **问题**: AI 助手选择返回整个配置对象而非 AI 名称
-- **修复**: `selectAIAssistant()` 函数返回 `config.name` 而不是整个对象
+**1. 补全 Claude Code 命令模板**
+在 `dist/claude/.claude/commands/` 目录中添加：
+- `novel.style-analyze.md` - 深度风格分析命令
+- `novel.style-learn.md` - 智能风格学习命令
+- `novel.write-styled.md` - 风格化创作命令
+- `novel.style-info.md` - 风格信息查询命令
+- `novel.style-list.md` - 已学习风格列表命令
+- `novel.inspire.md` - 创意灵感生成命令
 
-### 🎯 用户体验改进
+**2. 补全其他 AI 平台命令模板**
+为以下平台添加风格学习命令：
+- Cursor (`.cursor/commands/`)
+- Gemini (`.gemini/commands/` - TOML 格式)
+- Windsurf (`.windsurf/commands/`)
+- Roo Code (`.roo/commands/`)
+- Copilot (`.github/copilot-instructions.md`)
+- Qwen (`.qwen/commands/` - TOML 格式)
+- 以及其他 7 个 AI 平台
 
-- ✅ CLI 工具参数验证完善，错误提示更友好
-- ✅ 版本信息正确显示（如 `v0.21.2`）
-- ✅ 交互式选择流程数据类型正确
-- ✅ 移除重复的参数检查逻辑，代码更简洁
+**3. 更新 README 使用说明**
+明确各平台的命令格式：
+- Claude Code: `/novel.style-analyze`
+- Gemini CLI: `/novel:style-analyze`
+- Cursor 等: `/style-analyze`
 
 ### 📦 发布信息
 
-- **NPM 包**: `novel-writer-style-cn@0.21.2`
+- **NPM 包**: `novel-writer-style-cn@0.21.6`
 - **安装方式**: `npm install -g novel-writer-style-cn@latest`
-- **GitHub 标签**: `v0.21.2`
+- **GitHub 标签**: `v0.21.6`
+- **发布时间**: 2026-01-14
+
+### ⚠️ 升级建议
+
+**如果您已经创建了项目但无法使用风格学习命令**：
+1. 升级到 0.21.6：`npm update -g novel-writer-style-cn`
+2. 重新初始化项目或手动复制命令文件：
+   ```bash
+   # 方法1: 重新初始化（推荐）
+   cd your-project
+   novel upgrade --ai claude
+   
+   # 方法2: 手动复制命令文件
+   cp -r ~/.npm-global/lib/node_modules/novel-writer-style-cn/dist/claude/.claude/commands/* .claude/commands/
+   ```
+
+### ✅ 验证方法
+
+升级后，在新项目中应该能看到完整的命令列表：
+```bash
+novel init test-project --ai claude
+cd test-project
+ls .claude/commands/
+# 应该包含 novel.style-analyze.md 等风格学习命令
+```
+
+---
+
+## [0.21.5] - 2026-01-14
+
+### ✨ 重大功能：插件命令自动注入
+
+#### 问题背景
+- **问题**: 在 Claude Code 中执行 `/style-analyze` 等插件命令时显示 "Unknown skill"
+- **根本原因**: 插件命令文件仅复制到 `plugins/` 目录，但未注入到 AI 平台的命令目录（如 `.claude/commands/`）
+- **用户痛点**: 安装了风格学习插件后，无法直接使用插件的斜杠命令
+
+#### 解决方案
+实现完整的插件命令注入系统：
+
+1. **新增 `injectPluginCommands` 方法**：
+   - 自动读取插件的 `commands/` 目录
+   - 为每个命令添加适当的 YAML frontmatter
+   - 根据目标 AI 平台添加正确的命名前缀
+   - 支持 Claude、Cursor、Gemini 等多平台
+
+2. **自动格式转换**：
+   - Claude Code: 添加 `novel.` 前缀，生成完整 YAML frontmatter
+   - Gemini/Qwen: 转换为 TOML 格式
+   - Cursor/Windsurf 等: 纯 Markdown 格式
+
+3. **多场景支持**：
+   - `novel init <name> --plugins <plugin>`: 新项目创建时自动注入
+   - `novel plugins:add <plugin>`: 现有项目安装插件时自动注入
+   - `novel init <existing> --plugins <plugin>`: 为现有项目添加插件时自动注入
+
+#### 新增方法
+```javascript
+// PluginManager 新增方法
+async injectPluginCommands(pluginName, sourcePath, targetAIs)
+addFrontmatter(cmdName, content)
+convertToToml(cmdName, content)
+async detectInstalledAIs()
+```
+
+#### 验证结果
+安装 style-learning 插件后，`.claude/commands/` 目录自动生成：
+- `novel.style-analyze.md` - 风格分析命令
+- `novel.style-learn.md` - 风格学习命令
+- `novel.style-adjust.md` - 风格调整命令
+- `novel.style-workshop.md` - 风格工坊命令
+- `novel.write-styled.md` - 风格化写作命令
+
+### 🎯 用户体验改进
+
+- ✅ 安装插件后立即可在 Claude Code 中使用斜杠命令
+- ✅ 无需手动配置或复制命令文件
+- ✅ 支持多 AI 平台的自动格式适配
+- ✅ 命令自动添加必要的 frontmatter（description, allowed-tools, model）
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.5`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.21.5`
+- **发布时间**: 2026-01-14
+
+### ⚠️ 升级建议
+
+如果您之前安装了插件但命令无法使用，请：
+1. 升级到 0.21.5：`npm update -g novel-writer-style-cn`
+2. 重新安装插件：`novel plugins:add style-learning`
+
+---
+
+## [0.21.4] - 2026-01-14
+
+### ✨ 功能增强
+
+#### init 命令智能升级
+- **智能插件安装**：`novel init <name> --plugins <plugin>` 现在可以为已存在的项目安装插件
+- **项目检测**：自动检测目标目录是否为有效的 novel-writer 项目
+- **无缝体验**：用户无需区分"创建新项目"和"安装插件"两种场景
+
+#### 修复前后对比
+| 场景 | 修复前 | 修复后 |
+|------|--------|--------|
+| 项目已存在 + `--plugins` | ❌ 报错"目录已存在" | ✅ 智能安装插件 |
+| 项目已存在，无 `--plugins` | ❌ 报错 | ✅ 提示正确的使用方法 |
+| 新项目 + `--plugins` | ✅ 正常 | ✅ 正常 |
+
+### 🐛 问题修复
+
+#### PluginManager.installPlugin 方法补全
+- **问题**: `pluginManager.installPlugin is not a function` 错误在现有项目安装插件时出现
+- **根本原因**: `PluginManager` 类缺少 `installPlugin` 和 `setProjectPath` 方法实现
+- **修复内容**:
+  - 添加完整的 `installPlugin(pluginName, sourcePath)` 异步方法
+  - 修改构造函数支持可选的 `projectPath` 参数
+  - 添加 `setProjectPath(projectPath)` 方法
+  - 插件复制时自动过滤临时文件和 node_modules
+
+#### 临时文件清理
+- **问题**: `plugins/style-learning/` 目录包含 `tmpclaude-*` 临时文件
+- **修复**: 清理所有临时文件，避免污染用户项目
+
+### 📚 文档更新
+
+#### README 说明优化
+- 新增"为已存在的项目安装插件"的使用示例
+- 明确 `--plugins` 参数的智能行为
+
+### 🎯 用户体验改进
+
+- ✅ 解决了"先创建项目后想安装插件"的痛点
+- ✅ 命令行为更符合用户直觉
+- ✅ 错误提示更加友好，指导用户正确操作
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.4`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.21.4`
+- **发布时间**: 2026-01-14
+
+### ⚠️ 升级建议
+
+如果您之前因为"目录已存在"错误无法安装插件，请升级到 0.21.4：
+```bash
+npm update -g novel-writer-style-cn
+```
+
+---
+
+## [0.21.3] - 2026-01-13
+
+### 🐛 关键修复
+
+#### 插件安装功能修复
+- **问题**: 使用 `--plugins` 参数或 `plugins:add` 命令时报 `TypeError: pluginManager.installPlugin is not a function`
+- **根本原因**: `PluginManager` 类缺少 `installPlugin` 方法实现
+- **修复内容**:
+  - 添加 `installPlugin` 方法实现插件安装功能
+  - 修改构造函数支持 `projectPath` 参数
+  - 支持插件文件复制到项目 `.specify/plugins/` 目录
+  - 添加插件安装成功的反馈信息
+
+#### 样本文件缺失问题修复
+- **问题**: 使用 `--plugins style-learning` 初始化项目时缺少 `samples` 目录
+- **根本原因**: CLI 初始化和插件安装逻辑未包含 samples 目录复制
+- **修复内容**:
+  - 在 `novel init --plugins` 时自动复制 samples 目录
+  - 在 `novel plugins:add` 时自动复制 samples 目录（如果不存在）
+  - 确保风格学习插件的样本文件正确可用
+
+### 🎯 用户体验改进
+
+- ✅ 初始化项目时可正常使用 `--plugins` 参数
+- ✅ `plugins:add` 命令正常工作
+- ✅ 插件文件正确复制到目标目录
+- ✅ 样本文件自动复制，风格学习功能完整可用
+- ✅ 提供清晰的安装成功反馈
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.3`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.21.3`
 - **发布时间**: 2026-01-13
 
 ### ⚠️ 升级建议
 
-如果您遇到 CLI 工具参数错误或显示问题，请升级到 0.21.2：
+如果您遇到插件安装错误或缺少样本文件，请升级到 0.21.3：
 ```bash
 npm update -g novel-writer-style-cn
 ```
+
+---
+
+## [0.21.2] - 2026-01-13
+
+### 🐛 重要修复
+
+#### CLI 参数验证和显示问题修复
+- **问题1**: `novel init` 不带参数时报 `ERR_INVALID_ARG_TYPE` 错误
+- **根本原因**: 缺少参数验证，直接传递 undefined 给字符串处理函数
+- **修复**: 添加参数存在性检查，提供友好的使用提示
+
+- **问题2**: CLI 横幅显示 `[object Object]` 而非版本信息
+- **根本原因**: `getVersionInfo()` 返回对象但被当作字符串使用
+- **修复**: 修改为使用 `getVersionInfo().version` 获取版本字符串
+
+- **问题3**: AI 助手选择返回错误的数据类型
+- **根本原因**: `selectAIAssistant()` 返回完整对象而非助手名称
+- **修复**: 修改返回 `selectedAssistant.name` 字符串
+
+### 🎯 用户体验改进
+
+- ✅ CLI 工具启动不再报参数类型错误
+- ✅ 版本信息正确显示在横幅中
+- ✅ AI 助手选择功能正常工作
+- ✅ 错误提示更加友好和清晰
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.21.2`
+- **GitHub 标签**: `v0.21.2`
+- **发布时间**: 2026-01-13
 
 ---
 

@@ -129,6 +129,9 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# IDE - Kiro/Claude
+.claude/settings.local.json
+
 # misc
 /.sass-cache
 /connect.lock

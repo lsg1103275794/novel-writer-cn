@@ -52,39 +52,83 @@ npm install -g novel-writer-style-cn
 
 ```bash
 # 基本用法
-novel init my-novel
+novel init my-novel  # （my-novel是你的项目名称）
 
-# 推荐：预装风格学习插件
+# 推荐：创建项目时预装风格学习插件
 novel init my-novel --plugins style-learning
 
 # 指定 AI 平台
 novel init my-novel --ai claude    # Claude Code
 novel init my-novel --ai gemini    # Gemini CLI
 novel init my-novel --ai cursor    # Cursor
+
+# 为已存在的项目安装插件（智能检测）
+novel init my-novel --plugins style-learning  # 如果项目已存在，只安装插件
+
+# 或使用插件安装命令
+cd my-novel  # （my-novel是你的项目名称）
+novel plugins:install style-learning
 ```
 
 ### 3. 开始创作
 
 #### 🎨 风格学习创作流程（推荐）
 
+**⚠️ 重要提示**：命令格式因 AI 平台而异，请根据您使用的平台选择正确格式：
+
+| AI 平台 | 命令格式 | 示例 |
+|---------|----------|------|
+| **Claude Code** | `/novel.命令名` | `/novel.style-analyze` |
+| **Gemini CLI** | `/novel:命令名` | `/novel:style-analyze` |
+| **Cursor/Windsurf** | `/命令名` | `/style-analyze` |
+
+**Claude Code 用户示例**：
 ```bash
 # 1. 准备样本文件
 # 将要学习的小说文本放入 samples/ 目录
 
 # 2. 分析风格特征
-/style-analyze samples/jinyong/射雕英雄传.txt
+/novel.style-analyze samples/jinyong/射雕英雄传.txt
 
 # 3. 学习目标风格
-/style-learn samples/jinyong/ --name="金庸风格"
+/novel.style-learn samples/jinyong/ --name="金庸风格"
 
 # 4. 风格化创作
+/novel.write-styled 第1章 初入江湖 --style="金庸风格"
+```
+
+**Cursor/Windsurf 用户示例**：
+```bash
+# 使用不带前缀的命令格式
+/style-analyze samples/jinyong/射雕英雄传.txt
+/style-learn samples/jinyong/ --name="金庸风格"
 /write-styled 第1章 初入江湖 --style="金庸风格"
+```
+
+**Gemini CLI 用户示例**：
+```bash
+# 使用冒号分隔符
+/novel:style-analyze samples/jinyong/射雕英雄传.txt
+/novel:style-learn samples/jinyong/ --name="金庸风格"
+/novel:write-styled 第1章 初入江湖 --style="金庸风格"
 ```
 
 #### 📚 传统七步方法论
 
-在 AI 助手中使用斜杠命令：
+在 AI 助手中使用斜杠命令（同样需要根据平台添加相应前缀）：
 
+**Claude Code**：
+```
+/novel.constitution    # 建立创作原则
+/novel.specify         # 明确故事需求  
+/novel.clarify         # 澄清关键决策
+/novel.plan           # 制定创作计划
+/novel.tasks          # 分解执行任务
+/novel.write          # 进行具体创作
+/novel.analyze        # 验证质量一致性
+```
+
+**Cursor/Windsurf**：
 ```
 /constitution    # 建立创作原则
 /specify         # 明确故事需求  

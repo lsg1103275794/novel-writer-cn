@@ -150,7 +150,68 @@ program
             // name 已经在前面验证过，这里不会是 undefined
             projectPath = path.join(process.cwd(), name);
             if (await fs.pathExists(projectPath)) {
-                spinner.fail(`项目目录 "${name}" 已存在`);
+                // 检查是否是有效的 novel-writer 项目
+                const configPath = path.join(projectPath, '.specify', 'config.json');
+                const isValidProject = await fs.pathExists(configPath);
+
+                // 如果指定了 --plugins 且是有效项目，则只安装插件
+                if (options.plugins && isValidProject) {
+                    spinner.text = '检测到现有项目，正在安装插件...';
+                    const packageRoot = path.resolve(__dirname, '..');
+                    const pluginNames = options.plugins.split(',').map((p) => p.trim());
+                    const pluginManager = new PluginManager(projectPath);
+
+                    // 检测已安装的 AI 平台
+                    const installedAIs = await pluginManager.detectInstalledAIs();
+
+                    for (const pluginName of pluginNames) {
+                        const builtinPluginPath = path.join(packageRoot, 'plugins', pluginName);
+                        if (await fs.pathExists(builtinPluginPath)) {
+                            await pluginManager.installPlugin(pluginName, builtinPluginPath);
+                            spinner.text = `已安装插件: ${pluginName}`;
+
+                            // 注入插件命令到 AI 平台
+                            if (installedAIs.length > 0) {
+                                spinner.text = `正在注入 ${pluginName} 命令到 AI 平台...`;
+                                const injectedCount = await pluginManager.injectPluginCommands(pluginName, builtinPluginPath, installedAIs);
+                                if (injectedCount > 0) {
+                                    spinner.text = `已注入 ${injectedCount} 个命令`;
+                                }
+                            }
+                        }
+                        else {
+                            console.log(chalk.yellow(`\n警告: 插件 "${pluginName}" 未找到`));
+                        }
+                    }
+
+                    // 复制 samples 目录（风格学习插件需要）
+                    const samplesSourceDir = path.join(packageRoot, 'samples');
+                    if (await fs.pathExists(samplesSourceDir)) {
+                        const userSamplesDir = path.join(projectPath, 'samples');
+                        if (!await fs.pathExists(userSamplesDir)) {
+                            await fs.copy(samplesSourceDir, userSamplesDir);
+                        }
+                    }
+
+                    spinner.succeed(chalk.green(`插件安装成功！`));
+                    console.log('\n' + chalk.cyan('已安装的插件:'));
+                    for (const pluginName of pluginNames) {
+                        console.log(chalk.gray(`  - ${pluginName}`));
+                    }
+                    console.log('\n' + chalk.gray('提示: 使用 /style-learn 命令开始学习写作风格'));
+                    process.exit(0);
+                }
+
+                // 如果不是有效项目或没有指定插件，报错
+                if (!isValidProject) {
+                    spinner.fail(`目录 "${name}" 已存在但不是有效的 novel-writer 项目`);
+                    console.log(chalk.gray('提示: 使用其他名称创建新项目，或删除该目录'));
+                }
+                else {
+                    spinner.fail(`项目 "${name}" 已存在`);
+                    console.log(chalk.gray('提示: 如需安装插件，请使用: novel init ' + name + ' --plugins <插件名>'));
+                    console.log(chalk.gray('      或使用: novel plugins:install <插件名>'));
+                }
                 process.exit(1);
             }
             await fs.ensureDir(projectPath);
@@ -409,15 +470,41 @@ program
             spinner.text = '安装插件...';
             const pluginNames = options.plugins.split(',').map((p) => p.trim());
             const pluginManager = new PluginManager(projectPath);
+
+            // 确定目标 AI 平台
+            let targetAIs = [];
+            if (options.all) {
+                targetAIs = ['claude', 'cursor', 'gemini', 'windsurf', 'roocode', 'copilot', 'qwen'];
+            } else if (options.ai) {
+                targetAIs = [options.ai];
+            }
+
             for (const pluginName of pluginNames) {
                 // 检查内置插件
                 const builtinPluginPath = path.join(packageRoot, 'plugins', pluginName);
                 if (await fs.pathExists(builtinPluginPath)) {
                     await pluginManager.installPlugin(pluginName, builtinPluginPath);
+
+                    // 注入插件命令到 AI 平台
+                    if (targetAIs.length > 0) {
+                        spinner.text = `正在注入 ${pluginName} 命令...`;
+                        const injectedCount = await pluginManager.injectPluginCommands(pluginName, builtinPluginPath, targetAIs);
+                        if (injectedCount > 0) {
+                            spinner.text = `已注入 ${injectedCount} 个命令`;
+                        }
+                    }
                 }
                 else {
                     console.log(chalk.yellow(`\n警告: 插件 "${pluginName}" 未找到`));
                 }
+            }
+
+            // 复制 samples 目录（风格学习插件需要）
+            const samplesSourceDir = path.join(packageRoot, 'samples');
+            if (await fs.pathExists(samplesSourceDir)) {
+                const userSamplesDir = path.join(projectPath, 'samples');
+                await fs.copy(samplesSourceDir, userSamplesDir);
+                spinner.text = '已复制样本文件...';
             }
         }
         // Git 初始化
@@ -663,6 +750,26 @@ program
         const spinner = ora('正在安装插件...').start();
         const pluginManager = new PluginManager(projectPath);
         await pluginManager.installPlugin(name, builtinPluginPath);
+
+        // 6. 注入插件命令到 AI 平台
+        if (projectInfo.installedAI.length > 0) {
+            spinner.text = '正在注入插件命令...';
+            const injectedCount = await pluginManager.injectPluginCommands(name, builtinPluginPath, projectInfo.installedAI);
+            if (injectedCount > 0) {
+                spinner.text = `已注入 ${injectedCount} 个命令到 AI 平台`;
+            }
+        }
+
+        // 7. 复制 samples 目录（风格学习插件需要）
+        const samplesSourceDir = path.join(packageRoot, 'samples');
+        if (await fs.pathExists(samplesSourceDir)) {
+            const userSamplesDir = path.join(projectPath, 'samples');
+            if (!await fs.pathExists(userSamplesDir)) {
+                await fs.copy(samplesSourceDir, userSamplesDir);
+                spinner.text = '正在复制样本文件...';
+            }
+        }
+
         spinner.succeed(chalk.green('插件安装成功！\n'));
         // 6. 显示后续步骤
         if (pluginConfig.commands && pluginConfig.commands.length > 0) {
