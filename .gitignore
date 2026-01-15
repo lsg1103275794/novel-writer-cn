@@ -10,6 +10,7 @@ pids
 *.seed
 *.pid.lock
 
+.kiro
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
