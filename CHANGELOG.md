@@ -1,5 +1,45 @@
 # 更新日志
 
+## [0.22.2] - 2026-01-16
+
+### 🐛 修复：跨平台路径兼容性
+
+#### 问题修复
+
+- ✅ **Windows 路径兼容性** - 修复 Windows 系统下路径分隔符导致的路径映射失败
+- ✅ **路径规范化** - 统一使用正斜杠进行路径匹配，然后转换为系统路径分隔符
+- ✅ **测试验证** - 完整测试了 preprocess → analyze → check-style 流程
+
+#### 技术细节
+
+修复了以下代码中的路径匹配问题：
+```javascript
+// 修复前（仅在 Unix 系统工作）
+if (relativePath.startsWith('samples' + path.sep))
+
+// 修复后（跨平台兼容）
+const normalizedPath = relativePath.replace(/\\/g, '/');
+if (normalizedPath.startsWith('samples/'))
+```
+
+#### 测试结果
+
+```bash
+# 1. 预处理测试
+novel preprocess samples/jinyong/射雕英雄传.txt
+# ✓ 自动生成: clean/jinyong/射雕英雄传.txt
+
+# 2. 分析测试
+novel analyze clean/jinyong/射雕英雄传.txt --verbose
+# ✓ 自动生成: nlp/jinyong/射雕英雄传.json
+
+# 3. 一致性检测测试
+novel check-style output/test.txt nlp/jinyong/射雕英雄传.json
+# ✓ 成功检测风格一致性
+```
+
+---
+
 ## [0.22.1] - 2026-01-16
 
 ### 🎯 优化：规范化目录结构与智能路径管理

@@ -1382,8 +1382,13 @@ program
         if (!outputPath) {
             // 从 samples/author/book.txt 转换为 clean/author/book.txt
             const relativePath = path.relative(process.cwd(), filePath);
-            if (relativePath.startsWith('samples' + path.sep)) {
-                outputPath = relativePath.replace(/^samples/, 'clean');
+            // 规范化路径分隔符为正斜杠
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            
+            if (normalizedPath.startsWith('samples/')) {
+                outputPath = normalizedPath.replace(/^samples\//, 'clean/');
+                // 转换回系统路径分隔符
+                outputPath = outputPath.replace(/\//g, path.sep);
             } else {
                 // 如果不在 samples 目录，使用原文件名 + .clean.txt
                 const parsed = path.parse(filePath);
@@ -1448,12 +1453,15 @@ program
         if (!outputPath) {
             // 从 clean/author/book.txt 转换为 nlp/author/book.json
             const relativePath = path.relative(process.cwd(), filePath);
-            if (relativePath.startsWith('clean' + path.sep)) {
-                const parsed = path.parse(relativePath.replace(/^clean/, 'nlp'));
+            // 规范化路径分隔符为正斜杠
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            
+            if (normalizedPath.startsWith('clean/')) {
+                const parsed = path.parse(normalizedPath.replace(/^clean\//, 'nlp/'));
                 outputPath = path.join(parsed.dir, `${parsed.name}.json`);
-            } else if (relativePath.startsWith('samples' + path.sep)) {
+            } else if (normalizedPath.startsWith('samples/')) {
                 // 如果直接分析 samples，也输出到 nlp
-                const parsed = path.parse(relativePath.replace(/^samples/, 'nlp'));
+                const parsed = path.parse(normalizedPath.replace(/^samples\//, 'nlp/'));
                 outputPath = path.join(parsed.dir, `${parsed.name}.json`);
             } else {
                 // 其他情况，使用原文件名 + .analysis.json
