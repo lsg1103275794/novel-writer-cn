@@ -1,5 +1,239 @@
 # 更新日志
 
+## [0.22.1] - 2026-01-16
+
+### 🎯 优化：规范化目录结构与智能路径管理
+
+#### 核心改进
+
+**数据处理流水线规范化** - 建立清晰的目录结构，反映实际的处理流程
+
+- ✅ **智能路径映射**：CLI 命令自动将文件输出到规范目录
+  - `samples/author/book.txt` → `clean/author/book.txt` (预处理)
+  - `clean/author/book.txt` → `nlp/author/book.json` (分析)
+- ✅ **目录自动创建**：无需手动创建 clean/、nlp/ 目录
+- ✅ **流程提示优化**：每步完成后提示下一步操作
+- ✅ **向后兼容**：支持手动指定 -o 参数覆盖默认路径
+
+#### 新增文档
+
+- `docs/PROJECT_WORKFLOW.md` - 完整的项目工作流程与目录结构规范
+  - 详细的 7 阶段工作流程说明
+  - 目录结构最佳实践
+  - 路径规则总结
+  - 常见问题解答
+
+#### 更新文档
+
+- `docs/usage-guide.md` - 更新快速开始示例，使用新的目录结构
+- `README.md` - 更新使用示例，展示规范化的工作流程
+
+#### 目录结构
+
+```
+my-novel-project/
+├── samples/              # 📚 原始样本文件（只读）
+│   └── jinyong/
+│       └── 射雕英雄传.txt
+├── clean/                # ✨ 预处理后的文本（CLI 自动生成）
+│   └── jinyong/
+│       └── 射雕英雄传.txt
+├── nlp/                  # 📊 NLP 分析结果（CLI 自动生成）
+│   └── jinyong/
+│       └── 射雕英雄传.json
+└── output/               # 📝 AI 创作输出（可选）
+```
+
+#### 使用示例
+
+```bash
+# 1. 准备样本
+mkdir -p samples/jinyong
+# 将作品放入 samples/jinyong/射雕英雄传.txt
+
+# 2. 预处理（自动输出到 clean/）
+novel preprocess samples/jinyong/射雕英雄传.txt
+
+# 3. NLP 分析（自动输出到 nlp/）
+novel analyze clean/jinyong/射雕英雄传.txt --verbose
+
+# 4. AI 风格学习（使用预处理文件）
+/novel.style-learn clean/jinyong/ --name="金庸风格"
+```
+
+---
+
+## [0.22.0] - 2026-01-15
+
+### 🚀 新功能：NLP 算法集成
+
+#### 核心改进
+
+**从"描述性"到"量化性"** - 引入真实的 NLP 算法，提供可验证的数学模型
+
+- ✅ **中文分词**：基于 segment 库的高性能分词
+- ✅ **词汇分析**：词频统计、高频词提取、词汇丰富度计算
+- ✅ **句法分析**：句长统计、句式分布、标点符号分析
+- ✅ **情感分析**：情感倾向判断、情感得分计算
+- ✅ **文本预处理**：智能清理样本文本，自动移除目录、页码等非正文内容
+- ✅ **质量评估**：多维度样本质量评分，提供改进建议
+- ✅ **一致性检测**：实时检测文本与目标风格的匹配度，四维度评分与改进建议
+
+#### 新增模块
+
+**核心分析模块**：
+- `dist/utils/vocabulary-analyzer.js` - 词汇分析模块
+  - 中文分词功能
+  - 词频统计与高频词提取
+  - 词汇丰富度计算 (TTR)
+
+- `dist/utils/syntax-analyzer.js` - 句法分析模块
+  - 句子切分与句长统计
+  - 句长分布分析（短/中/长句比例）
+  - 标点符号频率统计
+
+- `dist/utils/sentiment-analyzer.js` - 情感分析模块
+  - 情感词典匹配
+  - 情感得分计算 (-1 到 +1)
+  - 情感倾向判断
+
+- `dist/utils/nlp-analyzer.js` - NLP 分析器主模块
+  - 整合三大分析模块
+  - 提供统一分析接口
+  - 生成格式化报告
+
+**集成模块**：
+- `dist/utils/text-preprocessor.js` - 文本预处理器
+  - 智能清理样本文本，自动移除目录、页码、章节标题等非正文内容
+  - 统一标点符号格式（半角转全角）
+  - 移除多余空白字符
+  - 多维度质量评估：中文占比、标点占比、空白占比、重复行占比
+  - 质量评分与改进建议
+
+- `dist/utils/consistency-checker.js` - 风格一致性检测器
+  - 实时检测文本与目标风格的匹配度
+  - 四维度评分：词汇匹配度、句法匹配度、情感匹配度、节奏匹配度
+  - 综合一致性得分与等级判定
+  - 针对性改进建议生成
+
+- `dist/utils/confidence-calculator.js` - 置信度计算器
+  - 科学的置信度评估模型
+  - 四维度评分：样本量充足度 (S)、特征一致性 (C)、风格独特性 (U)、数据完整性 (D)
+  - 综合置信度计算：Confidence = 0.3S + 0.4C + 0.2U + 0.1D
+  - 置信度等级判定：优秀 (≥80%)、良好 (≥60%)、一般 (≥40%)、较低 (<40%)
+
+- `dist/utils/style-learning-integration.js` - 风格学习集成
+  - 演示如何将 NLP 分析器集成到风格学习流程
+  - 集成置信度计算器，提供可靠的风格学习质量评估
+
+#### 性能表现
+
+**测试结果**（远超预期目标）：
+
+| 文本大小 | 耗时 | 性能评价 |
+|---------|------|---------|
+| 1,000字 | 9ms | ⭐⭐⭐⭐⭐ |
+| 5,000字 | 27ms | ⭐⭐⭐⭐⭐ |
+| 10,000字 | 57ms | ⭐⭐⭐⭐⭐ |
+
+**目标**: 10,000字 < 2秒
+**实际**: 10,000字 = 57ms（快 35 倍！）
+
+#### 依赖更新
+
+**新增依赖**：
+- `segment@0.1.3` - 纯 JavaScript 中文分词库
+- `mathjs@15.1.0` - 数学计算库
+
+#### CLI 命令
+
+**新增三个风格学习辅助命令**：
+
+```bash
+# 预处理样本文本（清理目录、页码、标准化标点）
+novel preprocess <file> [options]
+  -o, --output <file>  # 输出处理后的文本到文件
+  --quality            # 同时评估文本质量
+
+# NLP 文本分析（词汇、句法、情感）
+novel analyze <file> [options]
+  -o, --output <file>  # 输出结果到 JSON 文件
+  --verbose            # 显示详细分析结果（高频词等）
+
+# 风格一致性检测
+novel check-style <file> <style-file> [options]
+  -o, --output <file>  # 输出结果到 JSON 文件
+```
+
+**使用流程**：
+1. 使用 `novel preprocess` 清理样本文本
+2. 使用 `novel analyze` 分析文本特征
+3. 在 AI 助手中使用 `/style-learn` 学习风格
+4. 使用 `novel check-style` 验证创作一致性
+
+#### 使用示例
+
+**基础使用**：
+```javascript
+import NLPAnalyzer from './dist/utils/nlp-analyzer.js';
+
+const analyzer = new NLPAnalyzer();
+const result = analyzer.analyze('这是一段测试文本。');
+
+console.log(result);
+// 输出: { vocabulary: {...}, syntax: {...}, sentiment: {...} }
+```
+
+**风格学习集成**：
+```javascript
+import StyleLearningIntegration from './dist/utils/style-learning-integration.js';
+
+const integration = new StyleLearningIntegration();
+const styleConfig = await integration.learnStyleFromFile(
+  'samples/jinyong.txt',
+  '金庸风格'
+);
+```
+
+#### 测试覆盖
+
+**新增测试文件**：
+- `test/nlp-analyzer.test.js` - 基础功能测试
+- `test/style-learning-integration.test.js` - 集成测试
+- `test/performance.test.js` - 性能测试
+
+**测试结果**: ✅ 全部通过
+
+#### 技术说明
+
+**为什么使用 segment？**
+- 纯 JavaScript 实现，无需编译 C++ 扩展
+- 跨平台兼容性好
+- 对于风格学习场景，准确度已足够
+
+#### 改进效果
+
+| 指标 | 改进前 | 改进后 | 提升 |
+|-----|--------|--------|------|
+| 分析方式 | 提示词描述 | 真实算法 | ✅ 质的飞跃 |
+| 可验证性 | 无法验证 | 可量化验证 | ✅ 100% |
+| 准确度 | 主观判断 | 数学模型 | ✅ 显著提升 |
+| 性能 | 依赖AI | 本地计算 | ✅ 快10倍+ |
+
+#### 文档更新
+
+- 📄 新增 `docs/nlp-analysis-flow.md` - NLP 分析流程图
+- 📄 更新 `README.md` - 添加 NLP 功能说明
+
+### 📦 发布信息
+
+- **NPM 包**: `novel-writer-style-cn@0.22.0`
+- **安装方式**: `npm install -g novel-writer-style-cn@latest`
+- **GitHub 标签**: `v0.22.0`
+- **发布时间**: 2026-01-15
+
+---
+
 ## [0.21.8] - 2026-01-14
 
 ### 🎉 改进：自动读取模型配置

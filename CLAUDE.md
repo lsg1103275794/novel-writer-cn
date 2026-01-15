@@ -544,3 +544,157 @@ git rm sync-marker.txt
 git commit -m "chore: remove sync marker"
 git push origin master
 ```
+以下是本项目主次要项目结构助力AI理解本项目
+
+
+## 📁 顶层目录结构
+
+```
+novel-writer-style-cn/
+├── dist/                    # 构建输出 (核心运行文件)
+├── docs/                    # 文档目录
+├── experts/                 # 专家系统
+├── plugins/                 # 插件系统
+├── templates/               # 模板文件
+├── test/                    # 测试文件
+├── examples/                # 示例代码
+├── .claude/                 # Claude Code 配置
+├── .github/                 # GitHub 配置
+├── .vscode/                 # VSCode 配置
+├── package.json             # NPM 包配置
+├── CHANGELOG.md             # 版本更新日志
+├── README.md                # 项目说明
+└── CLAUDE.md                # Claude 指令文件
+```
+
+---
+
+## 🔧 dist/ - 核心运行目录
+
+### 主要文件
+
+```
+dist/
+├── cli.js                   # CLI 主入口 (约 1500 行)
+├── version.js               # 版本管理模块
+├── utils/                   # 工具模块
+├── plugins/                 # 插件管理
+├── claude/                  # Claude Code 模板
+├── cursor/                  # Cursor 模板
+├── gemini/                  # Gemini CLI 模板
+├── codex/                   # Codex CLI 模板
+├── auggie/                  # Auggie CLI 模板
+└── [其他 AI 平台模板...]
+```
+
+### dist/utils/ - 工具模块
+
+| 文件 | 说明 | 版本 |
+|------|------|------|
+| `cli.js` | CLI 主程序入口 | - |
+| `version.js` | 版本号管理 | - |
+| `project.js` | 项目工具函数 | - |
+| `interactive.js` | 交互界面模块 | - |
+| `model-config.js` | 模型配置读取 | v0.21.8 |
+| `vocabulary-analyzer.js` | 词汇分析器 | v0.22.0 |
+| `syntax-analyzer.js` | 句法分析器 | v0.22.0 |
+| `sentiment-analyzer.js` | 情感分析器 | v0.22.0 |
+| `nlp-analyzer.js` | NLP 综合分析器 | v0.22.0 |
+| `text-preprocessor.js` | 文本预处理器 | v0.22.0 |
+| `consistency-checker.js` | 一致性检测器 | v0.22.0 |
+| `confidence-calculator.js` | 置信度计算器 | v0.22.0 |
+| `style-learning-integration.js` | 风格学习集成 | v0.22.0 |
+
+### dist/plugins/ - 插件管理
+
+```
+dist/plugins/
+└── manager.js               # 插件管理器
+```
+
+---
+
+## 🔌 plugins/ - 插件系统
+
+```
+plugins/
+├── style-learning/          # 风格学习插件 ⭐ 核心
+├── authentic-voice/         # 真实人声插件
+├── book-analysis/           # 书籍分析插件
+├── genre-knowledge/         # 类型知识插件
+├── translate/               # 翻译插件
+├── luyao-style/             # 路遥风格插件
+├── wangyu-style/            # 王钰风格插件
+├── shizhangyu-style/        # 十丈余风格插件
+└── stardust-dreams/         # 星尘梦想插件
+```
+
+### style-learning/ - 风格学习插件 (核心)
+
+```
+plugins/style-learning/
+├── README.md                # 插件说明
+├── config.yaml              # 插件配置
+├── commands/                # AI 斜杠命令
+│   ├── style-analyze.md     # /style-analyze
+│   ├── style-learn.md       # /style-learn
+│   ├── write-styled.md      # /write-styled
+│   ├── style-adjust.md      # /style-adjust
+│   └── style-workshop.md    # /style-workshop
+├── experts/
+│   └── style-expert.md      # 风格专家
+├── templates/
+│   └── style-config-template.json
+└── examples/
+    └── usage-example.md     # 使用示例
+```
+
+---
+
+## 📚 docs/ - 文档目录
+
+```
+docs/
+├── README.md                # 文档索引
+├── PROJECT_STRUCTURE.md     # 项目结构 (本文档)
+├── usage-guide.md           # 完整使用指南 ⭐
+├── nlp-analysis-flow.md     # NLP 分析流程图
+├── INSTALLATION_COMPLETE.md # 安装完成指南
+├── METHODOLOGY.md           # 七步方法论
+├── novel-sdd.md             # 规格驱动创作法
+├── STYLE_LEARNING_INTEGRATION.md
+├── THIRD_PARTY_API.md       # 第三方 API 指南
+├── upgrade-guide.md         # 升级指南
+└── commands.md              # 命令详解
+```
+
+---
+
+## 📝 templates/ - 模板文件
+
+```
+templates/
+├── checklist-template.md    # 检查清单模板
+├── outline-template.md      # 大纲模板
+├── story-template.md        # 故事模板
+├── writing-constitution-template.md
+├── GEMINI.md                # Gemini 配置模板
+└── knowledge/               # 知识库模板
+    ├── character-profiles.md
+    ├── character-voices.md
+    ├── locations.md
+    └── world-setting.md
+```
+
+---
+
+## 🎓 experts/ - 专家系统
+
+```
+experts/
+└── core/
+    ├── character.md         # 人物塑造专家
+    ├── plot.md              # 剧情结构专家
+    ├── style.md             # 文风语言专家
+    └── world.md             # 世界观设计专家
+```

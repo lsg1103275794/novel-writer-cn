@@ -1363,6 +1363,195 @@ program
     console.log(chalk.gray('AI 会通过对话了解你的需求，推荐最适合的方法'));
     console.log(chalk.gray('追踪系统会在写作过程中自动更新，保持数据同步'));
 });
+// preprocess 命令 - 文本预处理
+program
+    .command('preprocess <file>')
+    .description('预处理文本（清理目录、页码、标准化标点）')
+    .option('-o, --output <file>', '输出处理后的文本到文件')
+    .option('--quality', '同时评估文本质量')
+    .action(async (file, options) => {
+    try {
+        const filePath = path.resolve(file);
+        if (!await fs.pathExists(filePath)) {
+            console.log(chalk.red(`❌ 文件不存在: ${file}`));
+            process.exit(1);
+        }
+        
+        // 智能输出路径：如果未指定 -o，自动生成到 clean/ 目录
+        let outputPath = options.output;
+        if (!outputPath) {
+            // 从 samples/author/book.txt 转换为 clean/author/book.txt
+            const relativePath = path.relative(process.cwd(), filePath);
+            if (relativePath.startsWith('samples' + path.sep)) {
+                outputPath = relativePath.replace(/^samples/, 'clean');
+            } else {
+                // 如果不在 samples 目录，使用原文件名 + .clean.txt
+                const parsed = path.parse(filePath);
+                outputPath = path.join(parsed.dir, `${parsed.name}.clean${parsed.ext}`);
+            }
+        }
+        
+        // 确保输出目录存在
+        await fs.ensureDir(path.dirname(outputPath));
+        
+        const spinner = ora('正在预处理文本...').start();
+        const text = await fs.readFile(filePath, 'utf-8');
+        const TextPreprocessor = (await import('./utils/text-preprocessor.js')).default;
+        const preprocessor = new TextPreprocessor();
+        const result = preprocessor.preprocess(text);
+        spinner.succeed(chalk.green('预处理完成'));
+        console.log(chalk.cyan('\n📝 预处理结果\n'));
+        console.log(`  原始长度: ${result.originalLength} 字符`);
+        console.log(`  处理后长度: ${result.processedLength} 字符`);
+        console.log(`  减少比例: ${result.reductionRate}`);
+        console.log(chalk.yellow('\n处理步骤:'));
+        result.steps.forEach(step => {
+            console.log(`  ✓ ${step}`);
+        });
+        if (options.quality) {
+            const quality = preprocessor.assessQuality(result.text);
+            console.log(chalk.yellow('\n质量评估:'));
+            console.log(`  得分: ${quality.score}/100 (${quality.level})`);
+            if (quality.suggestions.length > 0) {
+                console.log(chalk.gray('  建议:'));
+                quality.suggestions.forEach(s => console.log(`    - ${s}`));
+            }
+        }
+        
+        // 保存处理后的文本
+        await fs.writeFile(outputPath, result.text, 'utf-8');
+        console.log(chalk.gray(`\n✓ 处理后文本已保存到: ${chalk.cyan(outputPath)}`));
+        console.log(chalk.gray(`  下一步: ${chalk.yellow(`novel analyze ${outputPath}`)}`));
+    }
+    catch (error) {
+        console.error(chalk.red('❌ 预处理失败:'), error.message);
+        process.exit(1);
+    }
+});
+
+// analyze 命令 - NLP 文本分析
+program
+    .command('analyze <file>')
+    .description('分析文本的 NLP 特征（词汇、句法、情感）')
+    .option('-o, --output <file>', '输出结果到 JSON 文件')
+    .option('--verbose', '显示详细分析结果')
+    .action(async (file, options) => {
+    try {
+        const filePath = path.resolve(file);
+        if (!await fs.pathExists(filePath)) {
+            console.log(chalk.red(`❌ 文件不存在: ${file}`));
+            process.exit(1);
+        }
+        
+        // 智能输出路径：如果未指定 -o，自动生成到 nlp/ 目录
+        let outputPath = options.output;
+        if (!outputPath) {
+            // 从 clean/author/book.txt 转换为 nlp/author/book.json
+            const relativePath = path.relative(process.cwd(), filePath);
+            if (relativePath.startsWith('clean' + path.sep)) {
+                const parsed = path.parse(relativePath.replace(/^clean/, 'nlp'));
+                outputPath = path.join(parsed.dir, `${parsed.name}.json`);
+            } else if (relativePath.startsWith('samples' + path.sep)) {
+                // 如果直接分析 samples，也输出到 nlp
+                const parsed = path.parse(relativePath.replace(/^samples/, 'nlp'));
+                outputPath = path.join(parsed.dir, `${parsed.name}.json`);
+            } else {
+                // 其他情况，使用原文件名 + .analysis.json
+                const parsed = path.parse(filePath);
+                outputPath = path.join(parsed.dir, `${parsed.name}.analysis.json`);
+            }
+        }
+        
+        // 确保输出目录存在
+        await fs.ensureDir(path.dirname(outputPath));
+        
+        const spinner = ora('正在分析文本...').start();
+        const text = await fs.readFile(filePath, 'utf-8');
+        const NLPAnalyzer = (await import('./utils/nlp-analyzer.js')).default;
+        const analyzer = new NLPAnalyzer();
+        const startTime = Date.now();
+        const result = analyzer.analyze(text);
+        const elapsed = Date.now() - startTime;
+        spinner.succeed(chalk.green(`分析完成 (${elapsed}ms)`));
+        console.log(chalk.cyan('\n📊 NLP 分析结果\n'));
+        console.log(chalk.yellow('词汇分析:'));
+        console.log(`  总词数: ${result.vocabulary.totalTokens}`);
+        console.log(`  唯一词数: ${result.vocabulary.uniqueTokens}`);
+        console.log(`  词汇丰富度 (TTR): ${(result.vocabulary.vocabularyRichness * 100).toFixed(1)}%`);
+        console.log(chalk.yellow('\n句法分析:'));
+        console.log(`  总句数: ${result.syntax.sentenceCount}`);
+        console.log(`  平均句长: ${result.syntax.avgSentenceLength.toFixed(1)} 字`);
+        console.log(chalk.yellow('\n情感分析:'));
+        console.log(`  情感倾向: ${result.sentiment.emotionalTone}`);
+        console.log(`  情感得分: ${result.sentiment.sentimentScore.toFixed(2)}`);
+        if (options.verbose) {
+            console.log(chalk.yellow('\n高频词汇 (Top 10):'));
+            const topWords = result.vocabulary.topWords.slice(0, 10);
+            topWords.forEach((word, i) => {
+                console.log(`  ${i + 1}. ${word}`);
+            });
+        }
+        
+        // 保存分析结果
+        await fs.writeJson(outputPath, result, { spaces: 2 });
+        console.log(chalk.gray(`\n✓ 分析结果已保存到: ${chalk.cyan(outputPath)}`));
+        console.log(chalk.gray(`  下一步: 在 AI 助手中使用 ${chalk.yellow(`/novel.style-learn clean/...`)} 学习风格`));
+    }
+    catch (error) {
+        console.error(chalk.red('❌ 分析失败:'), error.message);
+        process.exit(1);
+    }
+});
+
+// check-style 命令 - 风格一致性检测
+program
+    .command('check-style <file> <style-file>')
+    .description('检测文本与目标风格的一致性')
+    .option('-o, --output <file>', '输出结果到 JSON 文件')
+    .action(async (file, styleFile, options) => {
+    try {
+        const filePath = path.resolve(file);
+        const styleFilePath = path.resolve(styleFile);
+        if (!await fs.pathExists(filePath)) {
+            console.log(chalk.red(`❌ 文件不存在: ${file}`));
+            process.exit(1);
+        }
+        if (!await fs.pathExists(styleFilePath)) {
+            console.log(chalk.red(`❌ 风格文件不存在: ${styleFile}`));
+            process.exit(1);
+        }
+        const spinner = ora('正在检测风格一致性...').start();
+        const text = await fs.readFile(filePath, 'utf-8');
+        const targetStyle = await fs.readJson(styleFilePath);
+        const ConsistencyChecker = (await import('./utils/consistency-checker.js')).default;
+        const checker = new ConsistencyChecker();
+        const result = checker.checkConsistency(text, targetStyle);
+        spinner.succeed(chalk.green('检测完成'));
+        console.log(chalk.cyan('\n🎯 风格一致性检测结果\n'));
+        const scoreColor = result.overall >= 80 ? chalk.green :
+                          result.overall >= 60 ? chalk.yellow : chalk.red;
+        console.log(`  总体得分: ${scoreColor(result.overall.toFixed(1) + '%')} (${result.overallLevel})`);
+        console.log(chalk.yellow('\n各维度得分:'));
+        const dims = result.dimensions;
+        console.log(`  词汇匹配: ${(dims.vocabulary.score * 100).toFixed(1)}%`);
+        console.log(`  句法匹配: ${(dims.syntax.score * 100).toFixed(1)}%`);
+        console.log(`  情感匹配: ${(dims.sentiment.score * 100).toFixed(1)}%`);
+        console.log(`  节奏匹配: ${(dims.rhythm.score * 100).toFixed(1)}%`);
+        if (result.summary.suggestions.length > 0) {
+            console.log(chalk.yellow('\n改进建议:'));
+            result.summary.suggestions.forEach(s => console.log(`  - ${s}`));
+        }
+        if (options.output) {
+            await fs.writeJson(options.output, result, { spaces: 2 });
+            console.log(chalk.gray(`\n结果已保存到: ${options.output}`));
+        }
+    }
+    catch (error) {
+        console.error(chalk.red('❌ 检测失败:'), error.message);
+        process.exit(1);
+    }
+});
+
 // 自定义帮助信息
 program.on('--help', () => {
     console.log('');
@@ -1386,6 +1575,11 @@ program.on('--help', () => {
     console.log('  /timeline    - 管理和验证时间线');
     console.log('  /relations   - 追踪角色关系变化');
     console.log('  /track       - 综合追踪与智能分析');
+    console.log('');
+    console.log(chalk.cyan('风格学习工具 (CLI):'));
+    console.log('  novel preprocess <file>     - 预处理样本文本');
+    console.log('  novel analyze <file>        - NLP 文本分析');
+    console.log('  novel check-style <f> <s>   - 风格一致性检测');
     console.log('');
     console.log(chalk.gray('更多信息: https://github.com/wordflowlab/novel-writer'));
 });

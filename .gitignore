@@ -124,10 +124,10 @@ node_modules
 
 # IDE - VSCode
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
 
 # IDE - Kiro/Claude
 .claude/settings.local.json
@@ -157,3 +157,9 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Project planning documents (internal use only)
+plan/
+
+# Local development docs (not for GitHub)
+docs/PROJECT_STRUCTURE.md

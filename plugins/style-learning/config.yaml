@@ -40,9 +40,31 @@ config:
     
 # 命令定义
 commands:
+  # NLP 分析命令（CLI 工具）
+  text-preprocess:
+    description: "文本预处理 - 清理和规范化样本文本"
+    usage: "/text-preprocess [文件路径]"
+    cli_command: "novel preprocess"
+    examples:
+      - "/text-preprocess samples/jinyong/射雕英雄传.txt"
+
+  nlp-analyze:
+    description: "NLP 文本分析 - 提取词汇、句法、情感特征"
+    usage: "/nlp-analyze [文件路径]"
+    cli_command: "novel analyze"
+    examples:
+      - "/nlp-analyze samples/jinyong/射雕英雄传-clean.txt"
+
+  style-check:
+    description: "风格一致性检测 - 验证创作与目标风格的匹配度"
+    usage: "/style-check [文本文件] [风格文件]"
+    cli_command: "novel check-style"
+    examples:
+      - "/style-check content/chapter-01.txt styles/jinyong-style.json"
+
   # 风格分析命令
   style-analyze:
-    description: "分析文件或目录的写作风格"
+    description: "深度分析文件或目录的写作风格特征"
     usage: "/style-analyze [文件路径或目录]"
     examples:
       - "/style-analyze samples/jinyong/射雕英雄传.txt"
@@ -62,7 +84,7 @@ commands:
       
   # 风格学习命令
   style-learn:
-    description: "学习目标样本的写作风格"
+    description: "学习并建模目标样本的写作风格"
     usage: "/style-learn [样本路径] --name=[风格名称]"
     parameters:
       - name: "样本路径"
@@ -96,7 +118,7 @@ commands:
       
   # 风格化创作命令
   write-styled:
-    description: "使用指定风格进行创作"
+    description: "使用学习的风格进行创作"
     usage: "/write-styled [章节名] --style=[风格名]"
     parameters:
       - name: "章节名"
